@@ -10,23 +10,22 @@
  *   cppcheck-suppress nullPointer
  */
 
-void printList(struct list_head *head)
-{
-    element_t *e, *s;
-    list_for_each_entry_safe (e, s, head, list)
-        printf("%s->", e->value);
-    printf("\n");
-}
+// void printList(struct list_head *head)
+// {
+//     element_t *e, *s;
+//     list_for_each_entry_safe (e, s, head, list)
+//         printf("%s->", e->value);
+//     printf("\n");
+// }
 
-void printNodeChain(struct list_head *head)
-{
-    while (head) {
-        printf("%s->", list_entry(head, element_t, list)->value);
-        head = head->next;
-    }
-    printf("\n");
-}
-
+// void printNodeChain(struct list_head *head)
+// {
+//     while (head) {
+//         printf("%s->", list_entry(head, element_t, list)->value);
+//         head = head->next;
+//     }
+//     printf("\n");
+// }
 
 /* Create an empty queue */
 struct list_head *q_new()
@@ -56,8 +55,6 @@ void q_free(struct list_head *head)
     free(head);
     return;
 }
-
-
 
 /* Insert an element at head of queue */
 bool q_insert_head(struct list_head *head, char *s)
@@ -208,8 +205,7 @@ void q_reverse(struct list_head *head)
 
     struct list_head *n, *s;
     list_for_each_safe (n, s, head) {
-        list_del(n);
-        list_add(n, head);
+        list_move(n, head);
     }
 }
 
@@ -312,7 +308,7 @@ int q_ascend(struct list_head *head)
 
     for (; &s->list != head;
          e = s, s = list_entry(s->list.next, element_t, list)) {
-        // check element e, if e<s delete it and move e to previous node
+        // check element e, if e>s delete it and move e to previous node
         while (&s->list != head && strcmp(e->value, s->value) > 0) {
             list_del(&e->list);
             q_release_element(e);
@@ -374,8 +370,6 @@ int q_merge(struct list_head *head, bool descend)
         INIT_LIST_HEAD(qnode->q);
         q1->size += qnode->size;
     }
-    printList(q1->q);
     q_sort(q1->q, descend);
-    printList(q1->q);
     return q1->size;
 }
