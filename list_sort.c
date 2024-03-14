@@ -12,7 +12,9 @@
  * @value needs to be explicitly allocated and freed
  */
 
-static int q_list_cmp(const struct list_head *a, const struct list_head *b)
+static int q_list_cmp(void *priv,
+                      const struct list_head *a,
+                      const struct list_head *b)
 {
     if (a == b)
         return 0;
@@ -20,18 +22,21 @@ static int q_list_cmp(const struct list_head *a, const struct list_head *b)
         list_entry(a, element_t, list);  // cppcheck-suppress nullPointer
     element_t *eleb =
         list_entry(b, element_t, list);  // cppcheck-suppress nullPointer
+
+    if (priv)
+        *((int *) priv) += 1;
+
     return strcmp(elea->value, eleb->value);
 };
 
-static struct list_head *merge(list_cmp_func_t cmp,
-                               struct list_head *a,
-                               struct list_head *b)
+__attribute__((nonnull(2, 3, 4))) static struct list_head *
+merge(void *priv, list_cmp_func_t cmp, struct list_head *a, struct list_head *b)
 {
     struct list_head *head = NULL, **tail = &head;
 
     for (;;) {
         /* if equal, take 'a' -- important for sort stability */
-        if (cmp(a, b) <= 0) {
+        if (cmp(priv, a, b) <= 0) {
             *tail = a;
             tail = &a->next;
             a = a->next;
@@ -52,17 +57,19 @@ static struct list_head *merge(list_cmp_func_t cmp,
     return head;
 }
 
-static void merge_final(list_cmp_func_t cmp,
-                        struct list_head *head,
-                        struct list_head *a,
-                        struct list_head *b)
+__attribute__((nonnull(2, 3, 4, 5))) static void merge_final(
+    void *priv,
+    list_cmp_func_t cmp,
+    struct list_head *head,
+    struct list_head *a,
+    struct list_head *b)
 {
     struct list_head *tail = head;
-    // u8 count = 0;
+    __uint8_t count = 0;
 
     for (;;) {
         /* if equal, take 'a' -- important for sort stability */
-        if (cmp(a, b) <= 0) {
+        if (cmp(priv, a, b) <= 0) {
             tail->next = a;
             a->prev = tail;
             tail = a;
@@ -91,8 +98,8 @@ static void merge_final(list_cmp_func_t cmp,
          * element comparison is needed, so the client's cmp()
          * routine can invoke cond_resched() periodically.
          */
-        // if (unlikely(!++count))
-        // 	cmp(b, b);
+        if (unlikely(!++count))
+            cmp(priv, b, b);
         b->prev = tail;
         tail = b;
         b = b->next;
@@ -103,7 +110,9 @@ static void merge_final(list_cmp_func_t cmp,
     head->prev = tail;
 }
 
-void list_sort(struct list_head *head, list_cmp_func_t cmp)
+__attribute__((nonnull(2, 3))) void list_sort(void *priv,
+                                              struct list_head *head,
+                                              list_cmp_func_t cmp)
 {
     struct list_head *list = head->next, *pending = NULL;
     size_t count = 0; /* Count of pending */
@@ -125,7 +134,7 @@ void list_sort(struct list_head *head, list_cmp_func_t cmp)
         if (likely(bits)) {
             struct list_head *a = *tail, *b = a->prev;
 
-            a = merge(cmp, b, a);
+            a = merge(priv, cmp, b, a);
             /* Install the merged result in place of the inputs */
             a->prev = b->prev;
             *tail = a;
@@ -147,16 +156,16 @@ void list_sort(struct list_head *head, list_cmp_func_t cmp)
 
         if (!next)
             break;
-        list = merge(cmp, pending, list);
+        list = merge(priv, cmp, pending, list);
         pending = next;
     }
     /* The final merge, rebuilding prev links */
-    merge_final(cmp, head, pending, list);
+    merge_final(priv, cmp, head, pending, list);
 }
 
 void q_list_sort(struct list_head *head, bool descend)
 {
-    list_sort(head, q_list_cmp);
+    list_sort(NULL, head, q_list_cmp);
     if (descend)
         q_reverse(head);
 }
