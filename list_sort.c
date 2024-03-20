@@ -4,14 +4,6 @@
 
 #include "list_sort.h"
 
-/**
- * element_t - Linked list element
- * @value: pointer to array holding string
- * @list: node of a doubly-linked list
- *
- * @value needs to be explicitly allocated and freed
- */
-
 static int q_list_cmp(void *priv,
                       const struct list_head *a,
                       const struct list_head *b)

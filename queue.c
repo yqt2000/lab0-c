@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "merge_sort.h"
 #include "queue.h"
 
 /* Notice: sometimes, Cppcheck would find the potential NULL pointer bugs,
@@ -231,66 +232,25 @@ void q_reverseK(struct list_head *head, int k)
     }
 }
 
-// assume l1, l2 are ascending and return the asending merge result
-struct list_head *mergeTwoSortedList(struct list_head *l1, struct list_head *l2)
+int q_list_cmp(void *priv, const struct list_head *a, const struct list_head *b)
 {
-    struct list_head head;
-    INIT_LIST_HEAD(&head);
-    while (l1 && l2) {
-        element_t *e1 = list_entry(l1, element_t, list);
-        element_t *e2 = list_entry(l2, element_t, list);
-        if (strcmp(e1->value, e2->value) <= 0) {
-            l1 = l1->next;
-            list_add_tail(&e1->list, &head);
-        } else {
-            l2 = l2->next;
-            list_add_tail(&e2->list, &head);
-        }
-    }
-    if (l1) {
-        head.prev->next = l1;
-        l1->prev = head.prev;
-    }
-    if (l2) {
-        head.prev->next = l2;
-        l2->prev = head.prev;
-    }
-    return head.next;
-}
+    if (a == b)
+        return 0;
+    element_t *elea =
+        list_entry(a, element_t, list);  // cppcheck-suppress nullPointer
+    element_t *eleb =
+        list_entry(b, element_t, list);  // cppcheck-suppress nullPointer
 
-// ascending
-struct list_head *mergeSortList(struct list_head *head)
-{
-    if (!head || !head->next)
-        return head;
-    struct list_head *slow = head;
-    struct list_head *fast = head;
-    while (fast && fast->next) {
-        slow = slow->next;
-        fast = fast->next->next;
-    }
-    slow->prev->next = NULL;
-    struct list_head *l1 = mergeSortList(head);
-    struct list_head *l2 = mergeSortList(slow);
+    if (priv)
+        *((int *) priv) += 1;
 
-    // merge sorted l1 and sorted l2
-    return mergeTwoSortedList(l1, l2);
-}
+    return strcmp(elea->value, eleb->value);
+};
 
 /* Sort elements of queue in ascending/descending order */
 void q_sort(struct list_head *head, bool descend)
 {
-    if (!head || list_empty(head) || list_is_singular(head))
-        return;
-    head->prev->next = NULL;
-
-    head->next = mergeSortList(head->next);
-    // reconnect the link(prev)
-    struct list_head *cur;
-    for (cur = head; cur->next; cur = cur->next)
-        cur->next->prev = cur;
-    cur->next = head;
-    head->prev = cur;
+    list_mergeSort(NULL, head, q_list_cmp);
     if (descend)
         q_reverse(head);
 }
