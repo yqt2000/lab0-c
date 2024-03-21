@@ -37,29 +37,23 @@ $(GIT_HOOKS):
 	@scripts/install-git-hooks
 	@echo
 
-
 OBJS := qtest.o report.o console.o harness.o queue.o \
         random.o dudect/constant.o dudect/fixture.o dudect/ttest.o \
         shannon_entropy.o \
         linenoise.o web.o \
-		list_sort.o merge_sort.o
+		list_sort.o merge_sort.o FYshuffle.o
 
 OBJS_TESTSORT := testSortPerf.o report.o console.o harness.o queue.o \
         random.o dudect/constant.o dudect/fixture.o dudect/ttest.o \
         shannon_entropy.o \
         linenoise.o web.o \
-		list_sort.o merge_sort.o
+		list_sort.o merge_sort.o FYshuffle.o
 
 deps := $(OBJS:%.o=.%.o.d)
 
 qtest: $(OBJS)
 	$(VECHO) "  LD\t$@\n"
 	$(Q)$(CC) $(LDFLAGS) -o $@ $^ -lm
-
-perfTest: $(OBJS_TESTSORT)
-	$(VECHO) "  LD\t$@\n"
-	$(Q)$(CC) $(LDFLAGS) -o $@ $^ -lm
-	./perfTest
 
 %.o: %.c
 	@mkdir -p .$(DUT_DIR)
@@ -71,6 +65,14 @@ check: qtest
 
 test: qtest scripts/driver.py
 	scripts/driver.py -c
+
+perfTest: $(OBJS_TESTSORT)
+	$(VECHO) "  LD\t$@\n"
+	$(Q)$(CC) $(LDFLAGS) -o $@ $^ -lm
+	./perfTest
+
+shuffleTest: qtest scripts/shuffleTest.py
+	python3 scripts/shuffleTest.py -c
 
 valgrind_existence:
 	@which valgrind 2>&1 > /dev/null || (echo "FATAL: valgrind not found"; exit 1)

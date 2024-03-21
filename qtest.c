@@ -42,6 +42,8 @@ extern int show_entropy;
  * OK as long as head field of queue_t structure is in first position in
  * solution code
  */
+
+#include "FYshuffle.h"
 #include "list_sort.h"
 #include "queue.h"
 
@@ -532,6 +534,27 @@ static bool do_reverse(int argc, char *argv[])
     return !error_check();
 }
 
+static bool do_shuffle(int argc, char *argv[])
+{
+    if (argc != 1) {
+        report(1, "%s takes no arguments", argv[0]);
+        return false;
+    }
+
+    if (!current || !current->q)
+        report(3, "Warning: Calling shuffle on null queue");
+    error_check();
+
+    set_noallocate_mode(true);
+    if (current && exception_setup(true))
+        FYshuffle(current->q);
+    exception_cancel();
+
+    set_noallocate_mode(false);
+    q_show(3);
+    return !error_check();
+}
+
 static bool do_size(int argc, char *argv[])
 {
     if (argc != 1 && argc != 2) {
@@ -729,7 +752,6 @@ static bool do_swap(int argc, char *argv[])
     q_show(3);
     return !error_check();
 }
-
 
 static bool do_ascend(int argc, char *argv[])
 {
@@ -1086,6 +1108,7 @@ static void console_init()
         "Remove from tail of queue. Optionally compare to expected value str",
         "[str]");
     ADD_COMMAND(reverse, "Reverse queue", "");
+    ADD_COMMAND(shuffle, "Shuffle queue", "");
     ADD_COMMAND(sort, "Sort queue in ascending/descening order", "");
     ADD_COMMAND(lsort, "Sort queue by linux kernel like list_sort", "");
     ADD_COMMAND(size, "Compute queue size n times (default: n == 1)", "[n]");
